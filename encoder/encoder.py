@@ -72,9 +72,23 @@ def exec_convert(input_file, output_file, from_encoding: str, to_encoding: str) 
     if sys.platform == 'win32':
         from_encoding = map_to_windows_encoding(from_encoding)
         to_encoding = map_to_windows_encoding(to_encoding)
-        return subprocess.run(['powershell', '-Command',
-                               f'Get-Content "{input_file}" -Encoding {from_encoding} | Set-Content "{output_file}" -Encoding {to_encoding}'],
-                              check=True)
+        input_ps = input_file.replace("'", "''")
+        output_ps = output_file.replace("'", "''")
+        script = (
+            "$ErrorActionPreference = 'Stop'; "
+            f"$content = Get-Content -LiteralPath '{input_ps}' -Encoding {from_encoding} -Raw; "
+            "if ($null -eq $content) { $content = '' }; "
+            f"if ('{to_encoding}' -eq 'utf8') {{ "
+            "$utf8 = New-Object System.Text.UTF8Encoding $false; "
+            f"[System.IO.File]::WriteAllText('{output_ps}', $content, $utf8) "
+            "} else { "
+            f"Set-Content -LiteralPath '{output_ps}' -Encoding {to_encoding} -Value $content -NoNewline "
+            "}"
+        )
+        return subprocess.run(
+            ['powershell', '-NoProfile', '-Command', script],
+            check=True,
+        )
     else:                                       #pour que ca marche sur macos
         with open(output_file, 'wb') as out:
             return subprocess.run(['iconv',
