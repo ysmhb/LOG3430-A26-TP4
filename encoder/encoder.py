@@ -75,12 +75,14 @@ def exec_convert(input_file, output_file, from_encoding: str, to_encoding: str) 
         return subprocess.run(['powershell', '-Command',
                                f'Get-Content "{input_file}" -Encoding {from_encoding} | Set-Content "{output_file}" -Encoding {to_encoding}'],
                               check=True)
-    else:
-        return subprocess.run(['iconv',
-                               '--from-code', from_encoding,
-                               '--to-code', to_encoding,
-                               input_file,
-                               '--output', output_file], check=True)
+    else:                                       #pour que ca marche sur macos
+        with open(output_file, 'wb') as out:
+            return subprocess.run(['iconv',
+                                   '--from-code', from_encoding,
+                                   '--to-code', to_encoding,
+                                   input_file],
+                                  stdout=out,
+                                  check=True)
 
 
 def convert(input_file, output_file, from_encoding, to_encoding):
